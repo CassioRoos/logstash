@@ -1,0 +1,49 @@
+version: '2'
+services:
+  elastic:
+    container_name: "elastic-painel"
+    restart: unless-stopped
+    image: elasticsearch:2.4.4-alpine
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: 4g
+    environment:
+      - "cluster.name=docker-cluster"
+      - "node.name=docker-cluster"
+      - "bootstrap.memory_lock=true"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch1"
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - 9200:9200
+      - 9300:9300
+  kibana:
+    container_name: 'kibana-painel'
+    restart: unless-stopped
+    image: kibana:4.6.4
+    depends_on:
+      - 'elastic'
+    links:
+      - "elastic:elasticsearch"
+    ports:
+      - 5601:5601
+  logstash:
+    container_name: 'logstash-painel'
+    image: docker.elastic.co/logstash/logstash-oss:6.2.3
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+    volumes:
+      - ./Logstash/config:/usr/share/logstash/config:rw
+      - ./Logstash/pipeline:/usr/share/logstash/pipeline:rw
+    ports:
+      - "6000:5000"
+      - "7000:7000"
+      - "9600:9600"
+    links:
+      - elastic
